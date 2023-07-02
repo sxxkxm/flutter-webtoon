@@ -1,153 +1,122 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:webtoon/models/webtoon.dart';
+import 'package:webtoon/services/api_service.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+import '../widgets/webtoon_widget.dart';
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+class HomeScreen extends StatelessWidget {
+  HomeScreen({super.key});
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const twentyFiveMinutes = 1500;
-  int totalSeconds = twentyFiveMinutes;
-  bool isRunning = false;
-  int totalPomodoros = 0;
-  late Timer timer;
-
-  void onTick(Timer timer) {
-    if (totalSeconds == 0) {
-      totalPomodoros = totalPomodoros + 1;
-      onReset();
-    } else {
-      setState(() {
-        totalSeconds = totalSeconds - 1;
-      });
-    }
-  }
-
-  void onStartPressed() {
-    timer = Timer.periodic(
-      const Duration(seconds: 1),
-      onTick,
-    );
-    setState(() {
-      isRunning = true;
-    });
-  }
-
-  void onPausePressed() {
-    timer.cancel();
-    setState(() {
-      isRunning = false;
-    });
-  }
-
-  void onReset() {
-    setState(() {
-      isRunning = false;
-      totalSeconds = twentyFiveMinutes;
-    });
-    timer.cancel();
-  }
-
-  void onResetPressed() {
-    onReset();
-  }
-
-  String format(int seconds) {
-    var duration = Duration(seconds: seconds);
-    return duration.toString().split(".").first.substring(2, 7);
-  }
-
+  final Future<List<WebtoonModel>> webtoons = ApiService.getTodaysToons();
   @override
   Widget build(BuildContext context) {
+    // print(webtoons);
+    // print(isLoading);
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: Column(
-        children: [
-          Flexible(
-            flex: 1,
-            child: Container(
-              alignment: Alignment.bottomCenter,
-              child: Text(
-                format(totalSeconds),
-                style: TextStyle(
-                    color: Theme.of(context).cardColor,
-                    fontSize: 89,
-                    fontWeight: FontWeight.w600),
-              ),
-            ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 1,
+        title: const Text(
+          "오늘의 웹툰",
+          style: TextStyle(
+            fontSize: 24,
           ),
-          Flexible(
-            flex: 2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+        ),
+        foregroundColor: Colors.green,
+        backgroundColor: Colors.white,
+      ),
+      body: FutureBuilder(
+        future: webtoons,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Column(
               children: [
-                Center(
-                  child: IconButton(
-                    iconSize: 120,
-                    color: Theme.of(context).cardColor,
-                    onPressed: isRunning ? onPausePressed : onStartPressed,
-                    icon: Icon(isRunning
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline_outlined),
-                  ),
+                const SizedBox(
+                  height: 50,
                 ),
-                totalSeconds != twentyFiveMinutes
-                    ? Center(
-                        child: IconButton(
-                          iconSize: 80,
-                          color: Theme.of(context).cardColor,
-                          onPressed: onResetPressed,
-                          icon: const Icon(Icons.stop_circle_outlined),
-                        ),
-                      )
-                    : Container(),
-              ],
-            ),
-          ),
-          Flexible(
-            flex: 1,
-            child: Row(
-              children: [
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Pomodoros",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).textTheme.displayLarge!.color,
-                          ),
-                        ),
-                        Text(
-                          '$totalPomodoros',
-                          style: TextStyle(
-                            fontSize: 58,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).textTheme.displayLarge!.color,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                  child: makeList(snapshot),
+                ),
               ],
-            ),
-          ),
-        ],
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  ListView makeList(AsyncSnapshot<List<WebtoonModel>> snapshot) {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(
+        vertical: 10,
+        horizontal: 20,
+      ),
+      scrollDirection: Axis.horizontal,
+      itemCount: snapshot.data!.length,
+      itemBuilder: (context, index) {
+        var webtoon = snapshot.data![index];
+        return Webtoon(
+          title: webtoon.title,
+          thumb: webtoon.thumb,
+          id: webtoon.id,
+        );
+      },
+      separatorBuilder: (context, index) => const SizedBox(
+        width: 40,
       ),
     );
   }
 }
+
+
+
+// import 'package:flutter/material.dart';
+
+// class HomeScreen extends StatefulWidget {
+//   const HomeScreen({super.key});
+
+//   @override
+//   State<HomeScreen> createState() => _HomeScreenState();
+// }
+
+// class _HomeScreenState extends State<HomeScreen> {
+//   // List<WebtoonModel> webtoons = [];
+//   // bool isLoading = true;
+
+//   // void waitForWebToons() async {
+//   //   webtoons = await ApiService.getTodaysToons();
+//   //   isLoading = false;
+//   //   setState(() {});
+//   // }
+
+//   // @override
+//   // void initState() {
+//   //   super.initState();
+//   //   waitForWebToons();
+//   // }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     // print(webtoons);
+//     // print(isLoading);
+
+//     return Scaffold(
+//       backgroundColor: Colors.white,
+//       appBar: AppBar(
+//         elevation: 1,
+//         title: const Text(
+//           "오늘의 웹툰",
+//           style: TextStyle(
+//             fontSize: 24,
+//           ),
+//         ),
+//         foregroundColor: Colors.green,
+//         backgroundColor: Colors.white,
+//       ),
+//     );
+//   }
+// }
