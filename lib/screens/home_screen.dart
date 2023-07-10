@@ -1,122 +1,237 @@
 import 'package:flutter/material.dart';
-import 'package:webtoon/models/webtoon.dart';
-import 'package:webtoon/services/api_service.dart';
-
+import 'package:webtoon/screens/search_page.dart';
+import 'package:webtoon/widgets/home_banner.dart';
+import 'package:webtoon/widgets/home_navbar.dart';
+import '../models/webtoon.dart';
+import '../services/api_service.dart';
 import '../widgets/webtoon_widget.dart';
+import 'cookie_page.dart';
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _showTitle = false; // 타이틀 보이기 여부를 나타내는 변수
+  // double titleOpacity = 0.0;
   final Future<List<WebtoonModel>> webtoons = ApiService.getTodaysToons();
   @override
   Widget build(BuildContext context) {
-    // print(webtoons);
-    // print(isLoading);
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 1,
-        title: const Text(
-          "오늘의 웹툰",
-          style: TextStyle(
-            fontSize: 24,
-          ),
-        ),
-        foregroundColor: Colors.green,
-        backgroundColor: Colors.white,
-      ),
-      body: FutureBuilder(
-        future: webtoons,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return Column(
-              children: [
-                const SizedBox(
-                  height: 50,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (scrollNotification) {
+          if (scrollNotification is ScrollUpdateNotification) {
+            setState(() {
+              if (scrollNotification.metrics.pixels > 145) {
+                _showTitle = true;
+              } else {
+                _showTitle = false;
+              }
+              // if (scrollNotification.metrics.pixels > 0.0) {
+              //   titleOpacity = 1.0;
+              // } else {
+              //   titleOpacity = 0.0;
+              // }
+              // print('titleOpacity: $titleOpacity');
+              print(scrollNotification.metrics.pixels);
+            });
+          }
+          return false;
+        },
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              pinned: true,
+              floating: true,
+              // snap: true,
+              expandedHeight: 200.0,
+              flexibleSpace: const FlexibleSpaceBar(
+                background: Stack(
+                  children: [
+                    HomeBanner(),
+                    //  HomeAppBar(),
+                  ],
                 ),
-                Expanded(
-                  child: makeList(snapshot),
+              ),
+              leading: IconButton(
+                icon: Image.asset(
+                  'assets/icon_cookie.png',
+                  width: 26,
+                  height: 26,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CookiePage(),
+                      fullscreenDialog: true,
+                    ),
+                  );
+                },
+              ),
+              title: _showTitle
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {},
+                          icon: const Icon(
+                            Icons.arrow_left,
+                            size: 28,
+                          ),
+                        ),
+                        const Text("인기순"),
+                        IconButton(
+                          onPressed: () {},
+                          icon: const Icon(
+                            Icons.arrow_right,
+                            size: 28,
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
+              // title: Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: [
+              //     IconButton(
+              //       onPressed: () {},
+              //       icon: const Icon(
+              //         Icons.arrow_left,
+              //         size: 28,
+              //       ),
+              //     ),
+              //     const Text("인기순"),
+              //     IconButton(
+              //       onPressed: () {},
+              //       icon: const Icon(
+              //         Icons.arrow_right,
+              //         size: 28,
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              actions: <Widget>[
+                IconButton(
+                  icon: const Icon(
+                    Icons.search,
+                    size: 28,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SearchPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
-            );
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  ListView makeList(AsyncSnapshot<List<WebtoonModel>> snapshot) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(
-        vertical: 10,
-        horizontal: 20,
-      ),
-      scrollDirection: Axis.horizontal,
-      itemCount: snapshot.data!.length,
-      itemBuilder: (context, index) {
-        var webtoon = snapshot.data![index];
-        return Webtoon(
-          title: webtoon.title,
-          thumb: webtoon.thumb,
-          id: webtoon.id,
-        );
-      },
-      separatorBuilder: (context, index) => const SizedBox(
-        width: 40,
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                minHeight: 45.0,
+                maxHeight: 45.0,
+                child: const HomeNavBar(),
+              ),
+            ),
+            SliverFillRemaining(
+              child: Container(
+                // decoration: const BoxDecoration(color: Colors.red),
+                // height: 2000,
+                child: FutureBuilder(
+                  future: webtoons,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return NotificationListener<ScrollNotification>(
+                        onNotification: (scrollNotification) => true,
+                        child: GridView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 20,
+                          ),
+                          scrollDirection: Axis.vertical,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8.0,
+                            mainAxisSpacing: 4.0,
+                            childAspectRatio: 0.6,
+                          ),
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            var webtoon = snapshot.data![index];
+                            return Webtoon(
+                              title: webtoon.title,
+                              thumb: webtoon.thumb,
+                              id: webtoon.id,
+                            );
+                          },
+                        ),
+                        // child: ListView.separated(
+                        //   padding: const EdgeInsets.symmetric(
+                        //     vertical: 10,
+                        //     horizontal: 20,
+                        //   ),
+                        //   scrollDirection: Axis.horizontal,
+                        //   itemCount: snapshot.data!.length,
+                        //   itemBuilder: (context, index) {
+                        //     var webtoon = snapshot.data![index];
+                        //     return Webtoon(
+                        //       title: webtoon.title,
+                        //       thumb: webtoon.thumb,
+                        //       id: webtoon.id,
+                        //     );
+                        //   },
+                        //   separatorBuilder: (context, index) => const SizedBox(
+                        //     width: 40,
+                        //   ),
+                        // ),
+                      );
+                    } else {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(
+      {required this.minHeight, required this.maxHeight, required this.child});
 
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
 
-// import 'package:flutter/material.dart';
+  @override
+  double get minExtent => minHeight;
 
-// class HomeScreen extends StatefulWidget {
-//   const HomeScreen({super.key});
+  @override
+  double get maxExtent => maxHeight;
 
-//   @override
-//   State<HomeScreen> createState() => _HomeScreenState();
-// }
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
 
-// class _HomeScreenState extends State<HomeScreen> {
-//   // List<WebtoonModel> webtoons = [];
-//   // bool isLoading = true;
-
-//   // void waitForWebToons() async {
-//   //   webtoons = await ApiService.getTodaysToons();
-//   //   isLoading = false;
-//   //   setState(() {});
-//   // }
-
-//   // @override
-//   // void initState() {
-//   //   super.initState();
-//   //   waitForWebToons();
-//   // }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     // print(webtoons);
-//     // print(isLoading);
-
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       appBar: AppBar(
-//         elevation: 1,
-//         title: const Text(
-//           "오늘의 웹툰",
-//           style: TextStyle(
-//             fontSize: 24,
-//           ),
-//         ),
-//         foregroundColor: Colors.green,
-//         backgroundColor: Colors.white,
-//       ),
-//     );
-//   }
-// }
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
+  }
+}
